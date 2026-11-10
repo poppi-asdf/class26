@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>꿈자람 교실 발표 룰렛</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Canvas Confetti CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- 구글 폰트: Gowun Dodum (귀엽고 단정한 초등 교실 감성 폰트) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Gowun+Dodum&family=Jua&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            dodum: ['"Gowun Dodum"', 'sans-serif'],
+            jua: ['"Jua"', 'sans-serif'],
+          },
+          colors: {
+            butter: '#FFFDF0',
+            creamy: '#FFF9E6',
+            apricot: '#FF9E6C',
+            warmCoral: '#FF7B72',
+            softMint: '#E2F0D9',
+            sageGreen: '#82A376',
+            chalkboard: '#2C3E35',
+            softPurple: '#EAE6FF',
+          },
+          boxShadow: {
+            'soft': '0 8px 30px rgba(0, 0, 0, 0.06)',
+            'board': '0 10px 25px -5px rgba(130, 80, 40, 0.12), 0 8px 10px -6px rgba(130, 80, 40, 0.08)',
+            'button': '0 6px 0 #E0733B',
+            'button-active': '0 2px 0 #E0733B',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Gowun Dodum', sans-serif;
+      background-color: #FAF6ED;
+      background-image: 
+        radial-gradient(#E8DFCE 1.2px, transparent 1.2px), 
+        radial-gradient(#E8DFCE 1.2px, #FAF6ED 1.2px);
+      background-size: 28px 28px;
+      background-position: 0 0, 14px 14px;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    /* 포인터 흔들림 애니메이션 */
+    .pin-tick {
+      transform-origin: 50% 15%;
+      animation: pinWiggle 0.12s ease-in-out;
+    }
+
+    @keyframes pinWiggle {
+      0% { transform: rotate(0deg); }
+      50% { transform: rotate(-18deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    /* 부드러운 스크롤바 */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.03);
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #D9CEBD;
+      border-radius: 999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #BFB29E;
+    }
+  </style>
+</head>
+<body class="min-h-screen text-slate-800 flex flex-col justify-between antialiased">
+
+  <!-- 상단 네비게이션 헤더 -->
+  <header class="w-full bg-white/80 backdrop-blur-md border-b border-amber-100/80 sticky top-0 z-30 px-4 py-3 shadow-sm">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="text-3xl p-2 bg-amber-100 rounded-2xl shadow-inner inline-flex items-center justify-center">🌱</span>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-xl sm:text-2xl font-bold font-jua tracking-wide text-amber-950 flex items-center gap-1.5">
+              꿈자람 교실 발표 룰렛
+            </h1>
+            <span class="text-xs bg-amber-100 text-amber-800 px-2.5 py-0.5 rounded-full font-bold border border-amber-200">
+              선생님 전용 모드 ✨
+            </span>
+          </div>
+          <p class="text-xs text-amber-800/70 hidden sm:block">공정하고 즐거운 배움이 피어나는 우리 반 발표 시간</p>
+        </div>
+      </div>
+
+      <!-- 상단 컨트롤 (소리 토글, 단체 편집, 단축키 팁) -->
+      <div class="flex items-center gap-2">
+        <button id="soundToggleBtn" class="flex items-center gap-1 px-3 py-1.5 rounded-xl border border-amber-200 bg-amber-50 hover:bg-amber-100 text-amber-900 transition text-sm font-medium">
+          <span id="soundIcon">🔊</span>
+          <span class="hidden md:inline text-xs font-semibold" id="soundLabel">소리 켬</span>
+        </button>
+
+        <button id="openBulkModalBtn" class="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-orange-100 hover:bg-orange-200 text-orange-900 transition text-sm font-semibold border border-orange-200">
+          <span>📝</span>
+          <span class="text-xs">명단 일괄 등록</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 레이아웃 -->
+  <main class="max-w-7xl mx-auto w-full p-4 sm:p-6 lg:p-8 flex-1 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    
+    <!-- 좌측/중앙: 룰렛 원판 영역 (7컬럼) -->
+    <section class="lg:col-span-7 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm rounded-3xl p-6 sm:p-8 border-2 border-amber-200/70 shadow-board relative overflow-hidden">
+      
+      <!-- 상단 칠판 스타일 안내 띠 -->
+      <div class="mb-4 inline-flex items-center gap-2 px-4 py-1.5 bg-creamy rounded-full border border-amber-200 text-amber-900 text-xs sm:text-sm font-medium">
+        <span class="animate-bounce">👉</span> 
+        <span>스페이스바(Space) 또는 아래 버튼을 눌러 돌려보세요!</span>
+      </div>
+
+      <!-- 룰렛 컨테이너 -->
+      <div class="relative w-full max-w-[420px] aspect-square flex items-center justify-center my-2">
+        
+        <!-- 원판 뒤 따뜻한 후광 장식 -->
+        <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-orange-100 to-amber-50 filter blur-xl opacity-70 pointer-events-none"></div>
+
+        <!-- 룰렛 테두리 장식 링 -->
+        <div class="absolute inset-2 sm:inset-3 rounded-full border-8 border-amber-100/90 shadow-inner pointer-events-none z-10"></div>
+        <div class="absolute inset-0 rounded-full border-[10px] border-[#FDE3B7] shadow-xl pointer-events-none z-10"></div>
+
+        <!-- Canvas 돌림판 -->
+        <canvas id="wheelCanvas" class="w-full h-full rounded-full cursor-pointer relative z-0"></canvas>
+
+        <!-- 상단 포인터 (핀) -->
+        <div class="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2 z-20 flex flex-col items-center">
+          <div id="pointerPin" class="transition-transform duration-75">
+            <svg width="42" height="52" viewBox="0 0 42 52" fill="none" xmlns="http://www.w3.org/2000/svg" class="drop-shadow-lg">
+              <path d="M21 51L8 18C4 10 9 2 21 2C33 2 38 10 34 18L21 51Z" fill="#FF5E57" stroke="#FFFFFF" stroke-width="3"/>
+              <circle cx="21" cy="16" r="6" fill="#FFFFFF"/>
+              <circle cx="21" cy="16" r="3" fill="#D32F2F"/>
+            </svg>
+          </div>
+        </div>
+
+        <!-- 중앙 허브 버튼 (센터 로고) -->
+        <button id="centerSpinBtn" class="absolute z-20 w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-b from-amber-400 to-orange-500 rounded-full border-4 border-white shadow-lg flex flex-col items-center justify-center text-white font-jua hover:scale-105 active:scale-95 transition group">
+          <span class="text-xs sm:text-sm tracking-wider">START</span>
+          <span class="text-[10px] opacity-90 -mt-0.5">돌리기</span>
+        </button>
+      </div>
+
+      <!-- 메인 스핀 버튼 컨트롤러 -->
+      <div class="w-full max-w-sm mt-6 flex flex-col items-center gap-3">
+        <button id="spinBtn" class="w-full py-4 px-8 rounded-2xl bg-[#FF7F47] hover:bg-[#FF7233] active:translate-y-1 text-white font-jua text-2xl tracking-wide shadow-button active:shadow-button-active transition-all flex items-center justify-center gap-2">
+          <span>🎯</span>
+          <span>누가 발표할까? 돌리기!</span>
+        </button>
+
+        <!-- 제외 옵션 체크박스 -->
+        <label class="flex items-center gap-2 text-sm text-amber-900 cursor-pointer bg-amber-50 hover:bg-amber-100/70 px-4 py-2 rounded-xl border border-amber-200/60 transition mt-1">
+          <input type="checkbox" id="autoExcludeCheck" class="w-4 h-4 text-orange-500 rounded border-amber-300 focus:ring-orange-400 accent-orange-500">
+          <span class="font-medium">당첨된 친구는 다음 룰렛에서 자동으로 쏙 빼기</span>
+        </label>
+      </div>
+    </section>
+
+    <!-- 우측: 명단 관리 및 발표 기록 (5컬럼) -->
+    <aside class="lg:col-span-5 flex flex-col gap-5">
+
+      <!-- 1. 학생 명단 카드 -->
+      <div class="bg-white/90 backdrop-blur-sm rounded-3xl p-5 sm:p-6 border-2 border-amber-200/70 shadow-board">
+        <div class="flex items-center justify-between pb-3 border-b border-amber-100">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🎒</span>
+            <h2 class="text-lg font-bold font-jua text-amber-950">참여 학생 명단</h2>
+            <span id="studentCountBadge" class="bg-amber-100 text-amber-900 text-xs px-2.5 py-0.5 rounded-full font-bold">
+              총 0명
+            </span>
+          </div>
+          <button id="resetSampleBtn" class="text-xs text-amber-700/80 hover:text-amber-900 underline font-medium">
+            기본 명단 복원
+          </button>
+        </div>
+
+        <!-- 학생 추가 입력폼 -->
+        <form id="addStudentForm" class="flex gap-2 mt-4">
+          <input type="text" id="newStudentName" maxlength="10" placeholder="학생 이름 입력 (예: 은우)"
+            class="flex-1 px-3.5 py-2 rounded-xl border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-400 bg-amber-50/50 text-sm">
+          <button type="submit" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-medium rounded-xl text-sm transition shadow-sm">
+            추가
+          </button>
+        </form>
+
+        <!-- 학생 태그 칩 리스트 -->
+        <div class="mt-4">
+          <div id="studentChipsContainer" class="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-1 pr-1.5">
+            <!-- 칩들이 JS로 동적 렌더링 됩니다 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 2. 오늘 당첨된 발표자 명예의 전당 (히스토리) -->
+      <div class="bg-white/90 backdrop-blur-sm rounded-3xl p-5 sm:p-6 border-2 border-amber-200/70 shadow-board">
+        <div class="flex items-center justify-between pb-3 border-b border-amber-100">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">⭐</span>
+            <h2 class="text-lg font-bold font-jua text-amber-950">오늘의 발표 대장들</h2>
+            <span id="historyCountBadge" class="bg-orange-100 text-orange-900 text-xs px-2 py-0.5 rounded-full font-bold">
+              0회
+            </span>
+          </div>
+          <button id="clearHistoryBtn" class="text-xs text-rose-500 hover:text-rose-700 font-medium">
+            기록 지우기
+          </button>
+        </div>
+
+        <!-- 히스토리 목록 -->
+        <div id="historyListContainer" class="mt-3 space-y-2 max-h-44 overflow-y-auto pr-1">
+          <p id="emptyHistoryMsg" class="text-center text-xs text-amber-800/50 py-6">
+            아직 발표한 어린이가 없어요.<br>설레는 마음으로 룰렛을 돌려보세요! ✨
+          </p>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- 하단 풋터 -->
+  <footer class="w-full text-center py-4 text-xs text-amber-800/60">
+    © 꿈자람 초등 교실 • 행복한 생각과 나눔이 함께하는 시간 🎈
+  </footer>
+
+  <!-- 당첨 축하 모달 -->
+  <div id="winnerModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 opacity-0 pointer-events-none transition-all duration-300">
+    <div id="winnerCard" class="bg-gradient-to-b from-creamy to-white w-full max-w-sm rounded-3xl p-6 sm:p-8 border-4 border-[#FFDC73] shadow-2xl text-center transform scale-90 transition-all duration-300 relative overflow-hidden">
+      
+      <!-- 카드 배경 반짝이 데코 -->
+      <div class="text-5xl mb-2 animate-bounce">🎉</div>
+      <span class="inline-block px-3 py-1 bg-amber-100 text-amber-800 rounded-full text-xs font-bold mb-2">
+        오늘의 당첨자
+      </span>
+
+      <h3 class="text-sm text-slate-500 font-medium">우리의 멋진 발표 주인공은 바로!</h3>
+      
+      <!-- 당첨 학생 이름 강조 -->
+      <div class="my-4 py-4 px-6 bg-gradient-to-r from-amber-100 via-orange-100 to-amber-100 rounded-2xl border-2 border-dashed border-amber-300">
+        <span id="winnerText" class="text-3xl sm:text-4xl font-jua text-[#E65100] tracking-wider drop-shadow-sm">
+          김서연
+        </span>
+      </div>
+
+      <p class="text-xs sm:text-sm text-slate-600 mb-6 font-medium leading-relaxed">
+        👏 모두 큰 박수와 따뜻한 눈빛으로<br>친구의 멋진 이야기를 들어볼까요?
+      </p>
+
+      <div class="flex flex-col gap-2">
+        <button id="closeModalBtn" class="w-full py-3 bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-jua text-lg rounded-xl shadow-md transition">
+          선생님과 발표 시작하기! 🌟
+        </button>
+        <button id="excludeThisStudentBtn" class="w-full py-2 bg-stone-100 hover:bg-stone-200 text-stone-700 text-xs font-medium rounded-xl transition">
+          이번만 명단에서 제외하기
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 대량 명단 편집 모달 -->
+  <div id="bulkModal" class="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center p-4 z-50 opacity-0 pointer-events-none transition-all duration-300">
+    <div class="bg-white w-full max-w-lg rounded-3xl p-6 border-2 border-amber-200 shadow-2xl relative">
+      <div class="flex items-center justify-between pb-3 border-b border-amber-100">
+        <div class="flex items-center gap-2">
+          <span class="text-2xl">📋</span>
+          <h3 class="text-lg font-bold font-jua text-amber-950">학생 명단 한 번에 등록하기</h3>
+        </div>
+        <button id="closeBulkModalBtn" class="text-slate-400 hover:text-slate-600 text-xl font-bold p-1">✕</button>
+      </div>
+
+      <p class="text-xs text-amber-900/70 mt-3 mb-2 leading-relaxed">
+        나이스(NEIS)나 엑셀에서 복사한 학생 이름을 줄바꿈이나 쉼표(,)로 구분해 붙여넣으세요.
+      </p>
+
+      <textarea id="bulkNamesInput" rows="7" class="w-full p-3 rounded-2xl border border-amber-200 focus:outline-none focus:ring-2 focus:ring-amber-400 text-sm font-sans bg-amber-50/30" placeholder="민준, 서연, 도윤, 하은, 예준, 시우..."></textarea>
+
+      <div class="flex items-center justify-between mt-4">
+        <button id="clearAllStudentsBtn" class="text-xs text-rose-500 hover:text-rose-700 font-semibold px-2 py-1">
+          전체 비우기
+        </button>
+        <div class="flex gap-2">
+          <button id="cancelBulkModalBtn" class="px-4 py-2 rounded-xl text-xs font-medium text-slate-600 bg-slate-100 hover:bg-slate-200">
+            취소
+          </button>
+          <button id="saveBulkBtn" class="px-5 py-2 rounded-xl text-xs font-bold text-white bg-amber-500 hover:bg-amber-600 shadow-sm">
+            명단 적용하기
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 안내/경고용 미니 토스트 알림창 -->
+  <div id="toastMessage" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-800 text-white px-5 py-2.5 rounded-2xl shadow-xl text-sm font-medium z-50 pointer-events-none opacity-0 transition-opacity duration-300">
+    알림 메시지
+  </div>
+
+  <script>
+    // --- 1. 상태 변수 및 기본 데이터 ---
+    const DEFAULT_STUDENTS = [
+      "민준", "서연", "도윤", "지우", 
+      "하은", "태오", "해나", "예준", 
+      "수아", "유준", "채원", "시우"
+    ];
+
+    let students = [...DEFAULT_STUDENTS];
+    let presentationHistory = [];
+    let isSpinning = false;
+    let soundEnabled = true;
+    let lastWinner = null;
+
+    // 초등학생들이 편안해하는 웜 파스텔 컬러 팔레트 (12색 순환)
+    const PASTEL_COLORS = [
+      '#FFD1DC', // 부드러운 딸기우유 핑크
+      '#FFE5B4', // 따뜻한 살구 복숭아
+      '#FFF3B0', // 버터 크림 옐로우
+      '#D8F3DC', // 어린 잎 연둣빛
+      '#C1E1C1', // 싱그러운 세이지 민트
+      '#BDE0FE', // 맑은 하늘 소라색
+      '#A2D2FF', // 시원한 파스텔 블루
+      '#E8D7F1', // 은은한 라벤더
+      '#FFDFD3', // 부드러운 코랄
+      '#FEE180', // 골든 허니
+      '#D7ECD9', // 연한 피스타치오
+      '#E9D5FF', // 스위트 바이올렛
+    ];
+
+    // 룰렛 회전 물리 엔진 변수
+    let currentAngle = 0; // 라디안
+    let spinVelocity = 0;
+    let deceleration = 0.985;
+    let lastPinTickIndex = -1;
+
+    // DOM 요소 캐싱
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const spinBtn = document.getElementById('spinBtn');
+    const centerSpinBtn = document.getElementById('centerSpinBtn');
+    const pointerPin = document.getElementById('pointerPin');
+    const autoExcludeCheck = document.getElementById('autoExcludeCheck');
+    const studentCountBadge = document.getElementById('studentCountBadge');
+    const studentChipsContainer = document.getElementById('studentChipsContainer');
+    const addStudentForm = document.getElementById('addStudentForm');
+    const newStudentName = document.getElementById('newStudentName');
+    const resetSampleBtn = document.getElementById('resetSampleBtn');
+    const historyListContainer = document.getElementById('historyListContainer');
+    const emptyHistoryMsg = document.getElementById('emptyHistoryMsg');
+    const historyCountBadge = document.getElementById('historyCountBadge');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    
+    // 모달 DOM
+    const winnerModal = document.getElementById('winnerModal');
+    const winnerCard = document.getElementById('winnerCard');
+    const winnerText = document.getElementById('winnerText');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const excludeThisStudentBtn = document.getElementById('excludeThisStudentBtn');
+    const bulkModal = document.getElementById('bulkModal');
+    const openBulkModalBtn = document.getElementById('openBulkModalBtn');
+    const closeBulkModalBtn = document.getElementById('closeBulkModalBtn');
+    const cancelBulkModalBtn = document.getElementById('cancelBulkModalBtn');
+    const saveBulkBtn = document.getElementById('saveBulkBtn');
+    const clearAllStudentsBtn = document.getElementById('clearAllStudentsBtn');
+    const bulkNamesInput = document.getElementById('bulkNamesInput');
+    const toast = document.getElementById('toastMessage');
+    const soundToggleBtn = document.getElementById('soundToggleBtn');
+    const soundIcon = document.getElementById('soundIcon');
+    const soundLabel = document.getElementById('soundLabel');
+
+    // --- 2. Web Audio API 신디사이저 사운드 엔진 (외부 의존성 제로) ---
+    let audioCtx = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          audioCtx = new AudioContextClass();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    // 포인터가 칸을 넘길 때 나는 가벼운 틱(Tick) 사운드
+    function playTickSound() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(480, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(140, ctx.currentTime + 0.04);
+
+        gain.gain.setValueAtTime(0.2, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.04);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.04);
+      } catch (e) {
+        // 무음 대응
+      }
+    }
+
+    // 당첨 시 기분 좋은 화음 팡파레 사운드
+    function playFanfareSound() {
+      if (!soundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+
+        const chordNotes = [523.25, 659.25, 783.99, 1046.50]; // 도, 미, 솔, 높은도
+        chordNotes.forEach((freq, idx) => {
+          setTimeout(() => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, ctx.currentTime);
+
+            gain.gain.setValueAtTime(0.25, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start();
+            osc.stop(ctx.currentTime + 0.65);
+          }, idx * 100);
+        });
+      } catch (e) {
+        // 무음 대응
+      }
+    }
+
+    // --- 3. 캔버스 룰렛 렌더링 시스템 ---
+    function resizeCanvas() {
+      const container = canvas.parentElement;
+      const size = Math.min(container.clientWidth, container.clientHeight) || 360;
+      const dpr = window.devicePixelRatio || 1;
+      
+      canvas.width = size * dpr;
+      canvas.height = size * dpr;
+      ctx.scale(dpr, dpr);
+      
+      drawWheel();
+    }
+
+    function drawWheel() {
+      const size = canvas.width / (window.devicePixelRatio || 1);
+      const center = size / 2;
+      const radius = center - 14;
+
+      ctx.clearRect(0, 0, size, size);
+
+      if (students.length === 0) {
+        // 학생이 없을 때 빈 원판 안내 렌더링
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(center, center, radius, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFF8EE';
+        ctx.fill();
+        ctx.lineWidth = 4;
+        ctx.strokeStyle = '#E0D0B5';
+        ctx.stroke();
+
+        ctx.fillStyle = '#9C8E7B';
+        ctx.font = 'bold 16px "Gowun Dodum", sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('등록된 학생이 없어요!', center, center - 12);
+        ctx.font = '13px "Gowun Dodum", sans-serif';
+        ctx.fillText('우측에서 학생을 추가해 주세요', center, center + 14);
+        ctx.restore();
+        return;
+      }
+
+      const arc = (Math.PI * 2) / students.length;
+
+      // 조각 그리기
+      for (let i = 0; i < students.length; i++) {
+        const angle = currentAngle + i * arc;
+        const color = PASTEL_COLORS[i % PASTEL_COLORS.length];
+
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(center, center);
+        ctx.arc(center, center, radius, angle, angle + arc, false);
+        ctx.closePath();
+        ctx.fillStyle = color;
+        ctx.fill();
+
+        // 부드러운 구분선
+        ctx.lineWidth = 2.5;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.stroke();
+        ctx.restore();
+
+        // 텍스트(이름) 렌더링
+        ctx.save();
+        ctx.translate(center, center);
+        ctx.rotate(angle + arc / 2);
+        ctx.textAlign = 'right';
+        ctx.textBaseline = 'middle';
+
+        // 인원수에 따른 동적 폰트 크기 계산
+        let fontSize = 16;
+        if (students.length > 24) fontSize = 11;
+        else if (students.length > 16) fontSize = 13;
+        else if (students.length < 6) fontSize = 18;
+
+        ctx.font = `bold ${fontSize}px "Gowun Dodum", "Jua", sans-serif`;
+        ctx.fillStyle = '#3E2723'; // 따뜻한 다크 브라운으로 글자 가독성 보장
+
+        // 텍스트 위치: 가장자리 쪽으로 배치
+        const textDistance = radius - 22;
+        const name = students[i];
+        
+        // 이름이 길 경우 적절히 잘라서 표시
+        const displayName = name.length > 5 ? name.substring(0, 4) + '..' : name;
+        ctx.fillText(displayName, textDistance, 0);
+
+        // 원판 장식 작은 별 도트
+        ctx.beginPath();
+        ctx.arc(textDistance - ctx.measureText(displayName).width - 12, 0, 2.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#FFA07A';
+        ctx.fill();
+
+        ctx.restore();
+      }
+
+      // 룰렛 외곽 장식 링
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(center, center, radius, 0, Math.PI * 2);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = '#FADCA5';
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // --- 4. 회전 물리 애니메이션 엔진 ---
+    function spinWheel() {
+      if (isSpinning) return;
+      if (students.length < 2) {
+        showToast('최소 2명 이상의 학생이 있어야 룰렛을 돌릴 수 있어요!');
+        return;
+      }
+
+      getAudioContext(); // 브라우저 자동 재생 정책 해제
+      isSpinning = true;
+      spinBtn.disabled = true;
+      centerSpinBtn.disabled = true;
+      spinBtn.classList.add('opacity-60', 'cursor-not-allowed');
+
+      // 무작위 초기 회전 속도 (충분히 역동적이면서도 약 4~6초 회전)
+      spinVelocity = Math.random() * 0.25 + 0.42; 
+      deceleration = 0.988 - (Math.random() * 0.003); // 감속 계수 살짝 랜덤화
+
+      animateSpin();
+    }
+
+    function animateSpin() {
+      if (!isSpinning) return;
+
+      currentAngle += spinVelocity;
+      spinVelocity *= deceleration;
+
+      // 포인터(핀)에 닿는 조각을 계산해 틱 사운드 & 핀 튕김 발생
+      checkPinTick();
+      drawWheel();
+
+      // 속도가 일정 수준 이하로 떨어지면 정지 및 당첨 처리
+      if (spinVelocity < 0.002) {
+        isSpinning = false;
+        spinBtn.disabled = false;
+        centerSpinBtn.disabled = false;
+        spinBtn.classList.remove('opacity-60', 'cursor-not-allowed');
+        determineWinner();
+      } else {
+        requestAnimationFrame(animateSpin);
+      }
+    }
+
+    // 핀 위치(상단 12시 방향: 3 * Math.PI / 2)에 닿을 때 틱 사운드
+    function checkPinTick() {
+      const numSegments = students.length;
+      const arc = (Math.PI * 2) / numSegments;
+      
+      // 상단(12시 방향) 각도에 대응하는 인덱스 역산
+      // 캔버스 12시는 -PI/2 또는 1.5 * PI
+      const pointerAngle = (Math.PI * 1.5 - currentAngle) % (Math.PI * 2);
+      const normalizedAngle = pointerAngle < 0 ? pointerAngle + Math.PI * 2 : pointerAngle;
+      const currentSegment = Math.floor(normalizedAngle / arc);
+
+      if (currentSegment !== lastPinTickIndex) {
+        lastPinTickIndex = currentSegment;
+        playTickSound();
+        triggerPinAnimation();
+      }
+    }
+
+    function triggerPinAnimation() {
+      pointerPin.classList.remove('pin-tick');
+      // 리플로우 강제 후 클래스 재부여로 애니메이션 재실행
+      void pointerPin.offsetWidth;
+      pointerPin.classList.add('pin-tick');
+    }
+
+    // 당첨자 산출
+    function determineWinner() {
+      const numSegments = students.length;
+      const arc = (Math.PI * 2) / numSegments;
+      
+      const pointerAngle = (Math.PI * 1.5 - currentAngle) % (Math.PI * 2);
+      const normalizedAngle = pointerAngle < 0 ? pointerAngle + Math.PI * 2 : pointerAngle;
+      const winnerIndex = Math.floor(normalizedAngle / arc);
+      
+      const winner = students[winnerIndex];
+      lastWinner = winner;
+
+      // 팡파레 & 축하 폭죽 효과
+      playFanfareSound();
+      triggerConfetti();
+
+      // 히스토리 기록
+      addHistoryRecord(winner);
+
+      // 모달 열기
+      setTimeout(() => {
+        showWinnerModal(winner);
+      }, 400);
+    }
+
+    // 색종이 폭죽 효과
+    function triggerConfetti() {
+      if (typeof confetti !== 'function') return;
+
+      const count = 200;
+      const defaults = {
+        origin: { y: 0.65 },
+        colors: ['#FF7B72', '#FFD1DC', '#FFE5B4', '#82A376', '#BDE0FE', '#FEE180']
+      };
+
+      function fire(particleRatio, opts) {
+        confetti(Object.assign({}, defaults, opts, {
+          particleCount: Math.floor(count * particleRatio)
+        }));
+      }
+
+      fire(0.25, { spread: 26, startVelocity: 55 });
+      fire(0.2, { spread: 60 });
+      fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8 });
+      fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
+      fire(0.1, { spread: 120, startVelocity: 45 });
+    }
+
+    // --- 5. 당첨 모달 및 히스토리 관리 ---
+    function showWinnerModal(name) {
+      winnerText.textContent = name;
+      winnerModal.classList.remove('opacity-0', 'pointer-events-none');
+      winnerCard.classList.remove('scale-90');
+      winnerCard.classList.add('scale-100');
+    }
+
+    function closeWinnerModal(shouldExclude = false) {
+      winnerModal.classList.add('opacity-0', 'pointer-events-none');
+      winnerCard.classList.remove('scale-100');
+      winnerCard.classList.add('scale-90');
+
+      if ((shouldExclude || autoExcludeCheck.checked) && lastWinner) {
+        removeStudent(lastWinner);
+        showToast(`'${lastWinner}' 학생을 다음 명단에서 제외했어요.`);
+      }
+    }
+
+    function addHistoryRecord(name) {
+      const now = new Date();
+      const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
+      
+      presentationHistory.unshift({ name, time: timeStr });
+      renderHistory();
+    }
+
+    function renderHistory() {
+      historyCountBadge.textContent = `${presentationHistory.length}회`;
+
+      if (presentationHistory.length === 0) {
+        historyListContainer.innerHTML = `
+          <p id="emptyHistoryMsg" class="text-center text-xs text-amber-800/50 py-6">
+            아직 발표한 어린이가 없어요.<br>설레는 마음으로 룰렛을 돌려보세요! ✨
+          </p>`;
+        return;
+      }
+
+      historyListContainer.innerHTML = '';
+      presentationHistory.forEach((item, idx) => {
+        const row = document.createElement('div');
+        row.className = 'flex items-center justify-between p-2.5 bg-amber-50/70 border border-amber-200/50 rounded-xl text-xs';
+        row.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="w-5 h-5 rounded-full bg-amber-200 text-amber-900 font-bold flex items-center justify-center text-[10px]">
+              ${presentationHistory.length - idx}
+            </span>
+            <span class="font-bold text-amber-950 text-sm">${item.name}</span>
+          </div>
+          <span class="text-amber-800/60 font-mono text-[11px]">${item.time}</span>
+        `;
+        historyListContainer.appendChild(row);
+      });
+    }
+
+    // --- 6. 학생 명단 관리 기능 ---
+    function renderStudentChips() {
+      studentCountBadge.textContent = `총 ${students.length}명`;
+      studentChipsContainer.innerHTML = '';
+
+      if (students.length === 0) {
+        studentChipsContainer.innerHTML = `
+          <p class="text-xs text-slate-400 py-3 w-full text-center">등록된 친구가 없습니다.</p>
+        `;
+        drawWheel();
+        return;
+      }
+
+      students.forEach((name, idx) => {
+        const chip = document.createElement('div');
+        chip.className = 'inline-flex items-center gap-1.5 px-3 py-1.5 bg-creamy border border-amber-200 text-amber-950 rounded-xl text-xs font-semibold shadow-sm transition hover:bg-amber-100';
+        chip.innerHTML = `
+          <span>${name}</span>
+          <button type="button" data-index="${idx}" class="remove-student-btn text-amber-600 hover:text-rose-500 hover:bg-white/60 rounded-full w-4 h-4 inline-flex items-center justify-center transition">✕</button>
+        `;
+        studentChipsContainer.appendChild(chip);
+      });
+
+      // 개별 삭제 버튼 이벤트 바인딩
+      const removeBtns = studentChipsContainer.querySelectorAll('.remove-student-btn');
+      removeBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const targetIndex = parseInt(btn.getAttribute('data-index'), 10);
+          removeStudentByIndex(targetIndex);
+        });
+      });
+
+      drawWheel();
+    }
+
+    function addStudent(name) {
+      const trimmed = name.trim();
+      if (!trimmed) return;
+      if (students.includes(trimmed)) {
+        showToast('이미 명단에 있는 이름이에요!');
+        return;
+      }
+      students.push(trimmed);
+      renderStudentChips();
+    }
+
+    function removeStudentByIndex(index) {
+      if (isSpinning) {
+        showToast('룰렛이 회전 중일 때는 명단을 수정할 수 없어요!');
+        return;
+      }
+      students.splice(index, 1);
+      renderStudentChips();
+    }
+
+    function removeStudent(name) {
+      const idx = students.indexOf(name);
+      if (idx !== -1) {
+        students.splice(idx, 1);
+        renderStudentChips();
+      }
+    }
+
+    // 토스트 안내 메시지
+    function showToast(msg) {
+      toast.textContent = msg;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 2200);
+    }
+
+    // --- 7. 대량 등록 모달 핸들링 ---
+    function openBulkModal() {
+      bulkNamesInput.value = students.join(', ');
+      bulkModal.classList.remove('opacity-0', 'pointer-events-none');
+    }
+
+    function closeBulkModal() {
+      bulkModal.classList.add('opacity-0', 'pointer-events-none');
+    }
+
+    function applyBulkStudents() {
+      const rawText = bulkNamesInput.value;
+      // 쉼표, 줄바꿈, 탭, 공백 기준으로 파싱
+      const rawList = rawText.split(/[\n,]+/).map(s => s.trim()).filter(s => s.length > 0);
+      
+      // 중복 제거
+      const uniqueList = Array.from(new Set(rawList));
+
+      if (uniqueList.length === 0) {
+        showToast('이름을 한 명 이상 입력해 주세요.');
+        return;
+      }
+
+      students = uniqueList;
+      renderStudentChips();
+      closeBulkModal();
+      showToast(`총 ${students.length}명의 학생이 성공적으로 등록되었습니다!`);
+    }
+
+    // --- 8. 이벤트 리스너 등록 ---
+    window.addEventListener('resize', resizeCanvas);
+
+    // 스핀 시작 트리거들
+    spinBtn.addEventListener('click', spinWheel);
+    centerSpinBtn.addEventListener('click', spinWheel);
+    canvas.addEventListener('click', spinWheel);
+
+    // 스페이스바로 스핀
+    window.addEventListener('keydown', (e) => {
+      // 텍스트 인풋창이나 텍스트에어리어에 포커스가 있을 때는 스페이스바로 룰렛 돌리지 않음
+      if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        spinWheel();
+      }
+    });
+
+    // 개별 학생 추가 폼
+    addStudentForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      addStudent(newStudentName.value);
+      newStudentName.value = '';
+      newStudentName.focus();
+    });
+
+    // 기본 명단 복원
+    resetSampleBtn.addEventListener('click', () => {
+      if (confirm('기본 예시 학생 명단으로 되돌릴까요?')) {
+        students = [...DEFAULT_STUDENTS];
+        renderStudentChips();
+        showToast('기본 명단이 복원되었습니다.');
+      }
+    });
+
+    // 히스토리 전체 삭제
+    clearHistoryBtn.addEventListener('click', () => {
+      if (presentationHistory.length === 0) return;
+      if (confirm('오늘의 발표 기록을 모두 비울까요?')) {
+        presentationHistory = [];
+        renderHistory();
+        showToast('발표 기록이 초기화되었습니다.');
+      }
+    });
+
+    // 사운드 토글
+    soundToggleBtn.addEventListener('click', () => {
+      soundEnabled = !soundEnabled;
+      if (soundEnabled) {
+        soundIcon.textContent = '🔊';
+        soundLabel.textContent = '소리 켬';
+        showToast('효과음이 켜졌습니다 🔔');
+      } else {
+        soundIcon.textContent = '🔇';
+        soundLabel.textContent = '소리 끔';
+        showToast('효과음이 꺼졌습니다 🔕');
+      }
+    });
+
+    // 모달 관련 버튼
+    closeModalBtn.addEventListener('click', () => closeWinnerModal(false));
+    excludeThisStudentBtn.addEventListener('click', () => closeWinnerModal(true));
+    
+    // 모달 배경 클릭 시 닫기
+    winnerModal.addEventListener('click', (e) => {
+      if (e.target === winnerModal) closeWinnerModal(false);
+    });
+
+    openBulkModalBtn.addEventListener('click', openBulkModal);
+    closeBulkModalBtn.addEventListener('click', closeBulkModal);
+    cancelBulkModalBtn.addEventListener('click', closeBulkModal);
+    saveBulkBtn.addEventListener('click', applyBulkStudents);
+    clearAllStudentsBtn.addEventListener('click', () => {
+      bulkNamesInput.value = '';
+      bulkNamesInput.focus();
+    });
+
+    // 초기화 실행
+    window.onload = function () {
+      resizeCanvas();
+      renderStudentChips();
+      renderHistory();
+    };
+  </script>
+</body>
+</html>
